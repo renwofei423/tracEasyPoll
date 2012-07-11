@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:py="http://genshi.edgewall.org/" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <body>
+    <div style="clear:both;"></div>
+    <div id="wrapper">
+        <div class="form-container">
+            <form id="${data.poll_id}" method="get" action="${data.currentUrl}" py:choose = "">
+                <fieldset>
+                  <legend style="font-size:13px;">Poll</legend>
+                  <b py:choose ="">
+                      <b py:when="data.show_thank_you_message == 'true'">
+                        <div style="margin:0px auto;width:30%;">
+                            <div class="errors" style="text-align:center;">
+                              Thank you for voting!
+                            </div>
+                        </div>
+                      </b>
+                  </b>
+                  <b py:choose ="">
+                      <b py:when="data.show_user_has_no_permission == 'true'">
+                        <div style="margin:0px auto;width:30%;">
+                            <div class="errors" style="text-align:center;">
+                              Oops! You don't have permission to vote
+                            </div>
+                        </div>
+                      </b>
+                  </b>
+                  <b py:choose ="">
+                      <b py:when="data.poll_edit_message != ''">
+                        <div style="margin:0px auto;width:30%;">
+                            <div class="errors" style="text-align:center;">
+                              ${data.poll_edit_message}
+                            </div>
+                        </div>
+                      </b>
+                  </b>
+                  <div style="width:50%;float:left;">
+                    <h3 style="margin-left:5px;">${data.poll_title}</h3>
+                    
+                    <b py:choose ="">
+                      <b py:when="data.show_result_chart == 'true'">
+                        <p style="margin-left:5px;margin-bottom:5px;"><b style="font-weight:bold;">You voted for:</b><br/>
+                          <b py:for="v in data.user_votes">
+                            <b>  ${data['options_label_dict'][v]} </b> <br/>
+                          </b>
+                        </p>
+                      </b>
+                    </b>
+                    
+                    <div class="controlset">
+                        <div py:when="data.poll_type == 'single'">
+                          <b py:for="option in data.poll_options">
+                            <b py:choose ="">
+                              <b py:when="data.user_can_vote == 'true'">
+                                  <input name="rb" id="rb" value="${option}" type="radio" />
+                              </b>
+                              <b py:when="data.user_can_vote == 'false'">
+                                  <input type="radio" name="rb" value="${option}" disabled="disabled"/>
+                              </b>
+                            </b>
+                            <label for="${option}">${data['options_label_dict'][option]}</label><br/>
+                          </b>
+                        </div>
+                        
+                        <div py:when="data.poll_type == 'multiple'">
+                          <b py:for="index, item in enumerate(data.poll_options)">
+                            <b py:choose ="">
+                              <b py:when="data.user_can_vote == 'true'">
+                                  <input type="checkbox" name="cb${index}" value="${item}"/>
+                              </b>
+                              <b py:when="data.user_can_vote == 'false'">
+                                  <input type="checkbox" name="cb${index}" value="${item}" disabled="disabled"/>
+                              </b>
+                            </b>
+                            <label for="${item}">${data['options_label_dict'][item]}</label><br/>
+                          </b>
+                        </div>
+                    </div>
+                    <div class="buttonrow">
+                        <input type="hidden" name="pollid" value="${data.poll_id}" />
+                        <input type="hidden" name="type" value="${data.poll_type}" />
+                        <b py:choose ="">
+                          <b py:when="data.user_can_vote == 'false'">
+                              <input type="submit" value="Vote" class="button" disabled="disabled"/>
+                          </b>
+                          <b py:when="data.user_can_vote == 'true'">
+                              <input type="submit" value="Vote" class="button"/>
+                          </b>
+                        </b>
+                        
+                    </div>
+                  </div>
+                  <b py:choose ="">
+                    <b py:when="data.show_result_chart == 'true'">
+                      <div style="width:35%;float:left;" id="chart_${data.poll_id}"></div>
+                    </b>
+                  </b>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    <div style="clear:both;"></div>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+    
+        google.load('visualization', '1.0', {'packages':['corechart']});
+        google.setOnLoadCallback(drawChart);
+        
+        function drawChart() {
+          var votes = eval('(' + '${data.json_encoded_poll_votes}' + ')');
+          var v = eval('(' + '${data.json_encoded_options_label_dict_graph}' + ')');
+          var votesData = [];
+          for(var k in v){
+            var temp = [];
+            temp.push(v[k]);
+            if(votes[k] != undefined){
+              temp.push(votes[k].length);  
+            } else {
+              temp.push(0);
+            }
+            votesData.push(temp);
+          }
+          
+          var data = new google.visualization.DataTable();
+          data.addColumn('string', 'Votes');
+          data.addColumn('number', 'Votes');
+          data.addRows(votesData);
+          var options = {'title':'Poll votes distribution',
+                         'width':500,
+                          'is3D' : true,
+                         'height':200};
+          if('${data.chart_type}' == "pie"){
+            var chart = new google.visualization.PieChart(document.getElementById('chart_'+'${data.poll_id}'));  
+          } else if('${data.chart_type}' == "bar"){
+              var chart = new google.visualization.BarChart(document.getElementById('chart_'+'${data.poll_id}'));  
+          }
+          chart.draw(data, options);
+        }
+
+
+$(function () {
+    var chart;
+    $(document).ready(function() {
+        chart = new Highcharts.Chart({
+            chart: {
+                renderTo: 'container',
+                plotBackgroundColor: null,
+                plotBorderWidth: null,
+                plotShadow: false
+            },
+            title: {
+                text: 'Browser market shares at a specific website, 2010'
+            },
+            tooltip: {
+                formatter: function() {
+                    return '<b>'+ this.point.name +'</b>: '+ this.percentage +' %';
+                }
+            },
+            plotOptions: {
+                pie: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    dataLabels: {
+                        enabled: true,
+                        color: '#000000',
+                        connectorColor: '#000000',
+                        formatter: function() {
+                            return '<b>'+ this.point.name +'</b>: '+ this.percentage +' %';
+                        }
+                    }
+                }
+            },
+            series: [{
+                type: 'pie',
+                name: 'Browser share',
+                data: [
+                    ['火狐',   45.0],
+                    ['IE',       26.8],
+                    {
+                        name: 'Chrome',
+                        y: 12.8,
+                        sliced: true,
+                        selected: true
+                    },
+                    ['Safari',    8.5],
+                    ['Opera',     6.2],
+                    ['Others',   0.7]
+                ]
+            }]
+        });
+    });
+    
+});
+
+    </script>
+<script type="text/javascript" src="easypoll/js/jquery.min.js"></script>
+<script src="easypoll/js/highcharts.js"></script>
+<script src="easypoll/js/modules/exporting.js"></script>
+<div id="container" style="min-width: 400px; height: 400px; margin: 0 auto"></div>
+  </body>
+</html>

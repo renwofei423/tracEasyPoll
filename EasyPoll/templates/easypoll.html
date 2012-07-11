@@ -1,0 +1,288 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:py="http://genshi.edgewall.org/" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <body>
+
+    <div id="wrapper">
+        <div class="form-container">
+            <form id="${data.poll_id}" method="get" action="${data.currentUrl}" py:choose = "">
+                <fieldset>
+                  <legend style="font-size:13px;">Poll:${data.poll_title}</legend>
+                  <b py:choose ="">
+                      <b py:when="data.show_thank_you_message == 'true'">
+                        <div style="margin:0px auto;width:30%;">
+                            <div class="errors" style="text-align:center;">
+                              Thank you for voting!
+                            </div>
+                        </div>
+                      </b>
+                  </b>
+                  <b py:choose ="">
+                      <b py:when="data.show_user_has_no_permission == 'true'">
+                        <div style="margin:0px auto;width:30%;">
+                            <div class="errors" style="text-align:center;">
+                              Oops! You don't have permission to vote
+                            </div>
+                        </div>
+                      </b>
+                  </b>
+                  <b py:choose ="">
+                      <b py:when="data.poll_edit_message != ''">
+                        <div style="margin:0px auto;width:30%;">
+                            <div class="errors" style="text-align:center;">
+                              ${data.poll_edit_message}
+                            </div>
+                        </div>
+                      </b>
+                  </b>
+                  <div style="width:50%;float:left;">                    
+                    
+                    <b py:choose ="">
+                      <b py:when="data.show_result_chart == 'true'">
+                        <p style="margin-left:5px;margin-bottom:5px;"><b style="font-weight:bold;">You voted for:</b><br/>
+                          <b py:for="v in data.user_votes">
+                            <b>  ${data['options_label_dict'][v]} </b> <br/>
+                          </b>
+                        </p>
+                      </b>
+                    </b>
+                    
+                    <div class="controlset">
+                        <div py:when="data.poll_type == 'single'">
+                          <b py:for="option in data.poll_options">
+                            <b py:choose ="">
+                              <b py:when="data.user_can_vote == 'true'">
+                                  <input name="rb" id="rb" value="${option}" type="radio" />
+                              </b>
+                              <b py:when="data.user_can_vote == 'false'">
+                                  <input type="radio" name="rb" value="${option}" disabled="disabled"/>
+                              </b>
+                            </b>
+                            <label for="${option}">${data['options_label_dict'][option]}</label><br/>
+                          </b>
+                        </div>
+                        
+                        <div py:when="data.poll_type == 'multiple'">
+                          <b py:for="index, item in enumerate(data.poll_options)">
+                            <b py:choose ="">
+                              <b py:when="data.user_can_vote == 'true'">
+                                  <input type="checkbox" name="cb${index}" value="${item}"/>
+                              </b>
+                              <b py:when="data.user_can_vote == 'false'">
+                                  <input type="checkbox" name="cb${index}" value="${item}" disabled="disabled"/>
+                              </b>
+                            </b>
+                            <label for="${item}">${data['options_label_dict'][item]}</label><br/>
+                          </b>
+                        </div>
+                    </div>
+                    <div class="buttonrow">
+                        <input type="hidden" name="pollid" value="${data.poll_id}" />
+                        <input type="hidden" name="type" value="${data.poll_type}" />
+                        <b py:choose ="">
+                          <b py:when="data.user_can_vote == 'false'">
+                              <input type="submit" value="Vote" class="button" disabled="disabled"/>
+                          </b>
+                          <b py:when="data.user_can_vote == 'true'">
+                              <input type="submit" value="Vote" class="button"/>
+                          </b>
+                        </b>
+                        
+                    </div>
+                  </div>
+                  <b py:choose ="">
+                    <b py:when="data.show_result_chart == 'true'">
+                      <div style="width:35%;float:left;min-width: 400px; height: 250px; margin: 0 auto" id="chart_${data.poll_id}_${data.chart_type}"></div>
+                    </b>
+                  </b>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+
+   
+    <script type="text/javascript">
+    
+// function format_votedata (vote_data) {
+// // var aa='9';
+// // var bb='52';
+// // var cc=Math.round(parseFloat(aa)/(bb)*10000)/100.00+"%";
+// // alert('c-111-c')
+// var len=0;
+// for(var i in vote_data){
+	// len+=vote_data[i][1];
+// }
+// for(var i in vote_data){
+// vote_data[i][1]=(Math.round(parseFloat(vote_data[i][1])/(len)*10000)/100.00);
+// // vote_data[i][1]=0.33
+// // 
+// }
+	// // alert(vote_data)
+	// return vote_data;
+// }       
+
+$(function () {
+	
+	
+    var chart;
+   
+    $(document).ready(function() {
+    	 var votes = eval('(' + '${data.json_encoded_poll_votes}' + ')');
+          // alert(votes)
+          var v = eval('(' + '${data.json_encoded_options_label_dict_graph}' + ')');
+          // alert(v)
+          var votesData = [];
+          for(var k in v){
+            var temp = [];
+            temp.push(v[k]);
+            if(votes[k] != undefined){
+              temp.push(votes[k].length);  
+            } else {
+              temp.push(0);
+            }
+            
+            votesData.push(temp);
+          }
+           
+
+          
+        if('${data.chart_type}' == "pie"){   
+        chart = new Highcharts.Chart({
+            chart: {
+                renderTo: document.getElementById('chart_${data.poll_id}_pie'),
+                plotBackgroundColor: null,
+                plotBorderWidth: null,
+                plotShadow: true
+            },
+            title: {
+                text: '${data.poll_title}'
+            },
+            subtitle: {
+                text: null
+            },
+            credits: {
+                enabled: true,
+                href: 'http://www.kylin.com',
+                text: 'www.kylin.com'
+                
+            },
+            tooltip: {
+                formatter: function() {
+                    return '<b>'+ this.point.name +'('+this.point.y +')</b>: '+ (this.percentage).toFixed(2) +' %';
+                }
+            },
+            plotOptions: {
+                pie: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    dataLabels: {
+                        enabled: true,
+                        color: '#000000',
+                        connectorColor: '#000000',
+                        formatter: function() {
+                            return '<b>'+ this.point.name+'('+this.point.y +') </b>: '+ (this.percentage).toFixed(2) +' %';
+                        }
+                    }
+                }
+            },
+            series: [{
+                type: 'pie',
+                name: 'Browser share',
+                data: votesData,
+            }]
+        });
+        
+       } else if('${data.chart_type}' == "bar"){
+              // var chart = new google.visualization.BarChart(document.getElementById('chart_'+'${data.poll_id}'));  
+           
+
+           var data_data = votesData ;           
+           for(var k in votesData){  
+ 								data_data[k]['name']=votesData[k][0];
+ 								data_data[k]['data']=[(votesData[k][1])];
+ 								}
+       			
+           chart = new Highcharts.Chart({
+            chart: {
+                renderTo: document.getElementById('chart_${data.poll_id}_bar'),
+                type: 'bar',              
+            },
+            title: {            		
+                text: '${data.poll_title}' ,
+            },
+            subtitle: {
+                text: null
+            },
+            xAxis: {
+            			// enabled: false,
+                categories: ' ',
+                title: {
+                    text: null
+                }
+            },
+            yAxis: {
+                min: 0,
+                title: {
+                    text: null,
+                    align: 'high'
+                }
+            },
+            tooltip: {
+                formatter: function() {
+                    return ''+
+                        this.series.name +': '+ this.y ;
+                }
+            },
+            plotOptions: {
+                bar: {
+                    // dataLabels: {
+                        // enabled: true
+                    // }
+                    dataLabels: {
+                    			align: 'left',
+                        enabled: true,
+                        color: '#000000',
+                        connectorColor: '#000000',
+                        formatter: function() {
+                            return ''+this.series.name +': '+ this.y ;
+                        }
+                        						 }
+                				}
+            },
+            // legend: {
+                // layout: 'vertical',
+                // align: 'right',
+                // verticalAlign: 'top',
+                // x: -100,
+                // y: 100,
+                // floating: true,
+                // borderWidth: 1,
+                // backgroundColor: '#FFFFFF',
+                // shadow: true
+            // },
+            credits: {
+                enabled: true,
+                href: 'http://www.kylin.com',
+                text: 'www.kylin.com'
+                
+            },
+           series: data_data,         
+           
+        });
+           }
+        
+        
+    });
+    
+});
+
+
+
+
+
+
+    </script>
+
+
+  </body>
+</html>
